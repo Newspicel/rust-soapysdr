@@ -1290,6 +1290,68 @@ impl Device {
         unsafe { string_result(SoapySDRDevice_readSetting(self.inner.ptr, key.as_ptr())) }
     }
 
+    /// Describe the device-wide settings supported by this driver.
+    pub fn setting_info(&self) -> Result<Vec<ArgInfo>, Error> {
+        unsafe { arg_info_result(|len_ptr| SoapySDRDevice_getSettingInfo(self.inner.ptr, len_ptr)) }
+    }
+
+    /// Describe settings supported by one channel in one direction.
+    pub fn channel_setting_info(
+        &self,
+        direction: Direction,
+        channel: usize,
+    ) -> Result<Vec<ArgInfo>, Error> {
+        unsafe {
+            arg_info_result(|len_ptr| {
+                SoapySDRDevice_getChannelSettingInfo(
+                    self.inner.ptr,
+                    direction.into(),
+                    channel,
+                    len_ptr,
+                )
+            })
+        }
+    }
+
+    /// Write an arbitrary setting on one channel in one direction.
+    pub fn write_channel_setting<S: Into<Vec<u8>>>(
+        &self,
+        direction: Direction,
+        channel: usize,
+        key: S,
+        value: S,
+    ) -> Result<(), Error> {
+        let key = CString::new(key).expect("key must not contain null byte");
+        let value = CString::new(value).expect("value must not contain null byte");
+        unsafe {
+            check_ret_error(SoapySDRDevice_writeChannelSetting(
+                self.inner.ptr,
+                direction.into(),
+                channel,
+                key.as_ptr(),
+                value.as_ptr(),
+            ))
+        }
+    }
+
+    /// Read an arbitrary setting on one channel in one direction.
+    pub fn read_channel_setting<S: Into<Vec<u8>>>(
+        &self,
+        direction: Direction,
+        channel: usize,
+        key: S,
+    ) -> Result<String, Error> {
+        let key = CString::new(key).expect("key must not contain null byte");
+        unsafe {
+            string_result(SoapySDRDevice_readChannelSetting(
+                self.inner.ptr,
+                direction.into(),
+                channel,
+                key.as_ptr(),
+            ))
+        }
+    }
+
     // TODO: gpio
 
     // TODO: I2C

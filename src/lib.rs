@@ -15,6 +15,44 @@ pub use device::{Device, Direction, Error, ErrorCode, Range, RxStream, TxStream,
 mod format;
 pub use format::{Format, StreamSample};
 
+fn static_string(ptr: *const std::os::raw::c_char) -> String {
+    unsafe { std::ffi::CStr::from_ptr(ptr).to_string_lossy().into_owned() }
+}
+
+fn owned_string_list(
+    function: unsafe extern "C" fn(*mut usize) -> *mut *mut std::os::raw::c_char,
+) -> Vec<String> {
+    unsafe {
+        let mut len = 0usize;
+        let mut ptr = function(&mut len);
+        let values = std::slice::from_raw_parts(ptr, len)
+            .iter()
+            .map(|item| {
+                std::ffi::CStr::from_ptr(*item)
+                    .to_string_lossy()
+                    .into_owned()
+            })
+            .collect();
+        soapysdr_sys::SoapySDRStrings_clear(&mut ptr, len);
+        values
+    }
+}
+
+/// The loaded SoapySDR core library version and build information.
+pub fn library_version() -> String {
+    unsafe { static_string(soapysdr_sys::SoapySDR_getLibVersion()) }
+}
+
+/// The module directories the loaded SoapySDR core will search.
+pub fn module_search_paths() -> Vec<String> {
+    owned_string_list(soapysdr_sys::SoapySDR_listSearchPaths)
+}
+
+/// The loadable modules found in the configured search paths.
+pub fn list_modules() -> Vec<String> {
+    owned_string_list(soapysdr_sys::SoapySDR_listModules)
+}
+
 /// Configures SoapySDR to log to the Rust `log` facility.
 ///
 /// With `env_logger`, use e.g `RUST_LOG=soapysdr=info` to control the log level.

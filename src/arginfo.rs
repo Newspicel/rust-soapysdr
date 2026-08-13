@@ -47,6 +47,9 @@ pub struct ArgInfo {
     /// The data type of the argument
     pub data_type: ArgType,
 
+    /// The allowed numeric range, when the driver declares one.
+    pub range: Option<SoapySDRRange>,
+
     /// A discrete list of possible values.
     ///
     /// When specified, the argument should be restricted to this options set.
@@ -79,6 +82,8 @@ pub unsafe fn arg_info_from_c(c: &SoapySDRArgInfo) -> ArgInfo {
             description: optional_string(c.description),
             units: optional_string(c.units),
             data_type: c.type_.into(),
+            range: ((c.range.minimum != 0.0) || (c.range.maximum != 0.0) || (c.range.step != 0.0))
+                .then_some(c.range),
             options: {
                 let option_vals = slice::from_raw_parts(c.options, c.numOptions);
                 let option_names = slice::from_raw_parts(c.optionNames, c.numOptions);
