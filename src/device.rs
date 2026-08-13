@@ -200,6 +200,16 @@ unsafe fn arg_info_result<F: FnOnce(*mut usize) -> *mut SoapySDRArgInfo>(
     unsafe {
         let mut len: usize = 0;
         let ptr = check_error(f(&mut len as *mut _))?;
+        if len == 0 {
+            SoapySDRArgInfoList_clear(ptr, len);
+            return Ok(Vec::new());
+        }
+        if ptr.is_null() {
+            return Err(Error {
+                code: ErrorCode::Other,
+                message: "SoapySDR returned a null argument-info list".to_string(),
+            });
+        }
         let r = slice::from_raw_parts(ptr, len)
             .iter()
             .map(|x| arg_info_from_c(x))

@@ -73,6 +73,26 @@ unsafe fn optional_string(s: *mut c_char) -> Option<String> {
     }
 }
 
+unsafe fn options_from_c(c: &SoapySDRArgInfo) -> Vec<(String, Option<String>)> {
+    unsafe {
+        if c.numOptions == 0 {
+            return Vec::new();
+        }
+        assert!(!c.options.is_null(), "Null option list from SoapySDR");
+        assert!(
+            !c.optionNames.is_null(),
+            "Null option-label list from SoapySDR"
+        );
+        let option_vals = slice::from_raw_parts(c.options, c.numOptions);
+        let option_names = slice::from_raw_parts(c.optionNames, c.numOptions);
+        option_vals
+            .iter()
+            .zip(option_names.iter())
+            .map(|(&value, &label)| (required_string(value), optional_string(label)))
+            .collect()
+    }
+}
+
 pub unsafe fn arg_info_from_c(c: &SoapySDRArgInfo) -> ArgInfo {
     unsafe {
         ArgInfo {
@@ -84,15 +104,7 @@ pub unsafe fn arg_info_from_c(c: &SoapySDRArgInfo) -> ArgInfo {
             data_type: c.type_.into(),
             range: ((c.range.minimum != 0.0) || (c.range.maximum != 0.0) || (c.range.step != 0.0))
                 .then_some(c.range),
-            options: {
-                let option_vals = slice::from_raw_parts(c.options, c.numOptions);
-                let option_names = slice::from_raw_parts(c.optionNames, c.numOptions);
-                option_vals
-                    .iter()
-                    .zip(option_names.iter())
-                    .map(|(&name, &val)| (required_string(name), optional_string(val)))
-                    .collect()
-            },
+            options: options_from_c(c),
         }
     }
 }
