@@ -48,7 +48,7 @@ pub struct ArgInfo {
     pub data_type: ArgType,
 
     /// The allowed numeric range, when the driver declares one.
-    pub range: Option<SoapySDRRange>,
+    pub range: Option<crate::Range>,
 
     /// A discrete list of possible values.
     ///
